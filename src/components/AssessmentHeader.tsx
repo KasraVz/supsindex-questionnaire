@@ -1,69 +1,70 @@
 import React, { useState, useEffect } from 'react';
-import { Camera, Mic, Wifi, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Camera, Mic, Wifi } from 'lucide-react';
 import { cn } from '@/lib/utils';
-
-interface SecurityStatus {
-  camera: 'secure' | 'warning' | 'error';
-  microphone: 'secure' | 'warning' | 'error';
-  connection: 'secure' | 'warning' | 'error';
-}
 
 interface AssessmentHeaderProps {
   startTime: Date;
+  isPaused?: boolean;
+  onSystemFailure?: (system: 'camera' | 'microphone' | 'connection') => void;
 }
 
-const AssessmentHeader: React.FC<AssessmentHeaderProps> = ({ startTime }) => {
+const AssessmentHeader: React.FC<AssessmentHeaderProps> = ({ 
+  startTime, 
+  isPaused = false,
+  onSystemFailure 
+}) => {
   const [elapsedTime, setElapsedTime] = useState(0);
-  const [securityStatus] = useState<SecurityStatus>({
-    camera: 'secure',
-    microphone: 'secure', 
-    connection: 'secure'
+  const [pausedTime, setPausedTime] = useState(0);
+  const [systemStatus, setSystemStatus] = useState({
+    camera: true,
+    microphone: true,
+    connection: true
   });
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      const elapsed = Math.floor((Date.now() - startTime.getTime()) / 1000);
-      setElapsedTime(elapsed);
+    if (isPaused) {
+      setPausedTime(Date.now());
+      return;
+    }
+
+    const interval = setInterval(() => {
+      const now = Date.now();
+      const start = startTime.getTime();
+      const pauseDuration = pausedTime > 0 ? pausedTime - start : 0;
+      const actualElapsed = now - start - pauseDuration;
+      setElapsedTime(Math.max(0, actualElapsed));
     }, 1000);
 
-    return () => clearInterval(timer);
-  }, [startTime]);
+    return () => clearInterval(interval);
+  }, [startTime, isPaused, pausedTime]);
 
-  const formatTime = (seconds: number): string => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
+  // Simulate periodic system checks (for demo purposes)
+  useEffect(() => {
+    const checkInterval = setInterval(() => {
+      // Simulate random system failures for demo (remove in production)
+      if (Math.random() < 0.001) { // Very low chance for demo
+        const systems: ('camera' | 'microphone' | 'connection')[] = ['camera', 'microphone', 'connection'];
+        const failedSystem = systems[Math.floor(Math.random() * systems.length)];
+        
+        setSystemStatus(prev => ({
+          ...prev,
+          [failedSystem]: false
+        }));
+        
+        onSystemFailure?.(failedSystem);
+      }
+    }, 5000);
+
+    return () => clearInterval(checkInterval);
+  }, [onSystemFailure]);
+
+  const formatTime = (milliseconds: number): string => {
+    const totalSeconds = Math.floor(milliseconds / 1000);
+    const mins = Math.floor(totalSeconds / 60);
+    const secs = totalSeconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  const getStatusColor = (status: SecurityStatus[keyof SecurityStatus]) => {
-    switch (status) {
-      case 'secure':
-        return 'text-status-secure';
-      case 'warning':
-        return 'text-status-warning';
-      case 'error':
-        return 'text-status-error';
-    }
-  };
-
-  const getStatusIcon = (status: SecurityStatus[keyof SecurityStatus]) => {
-    switch (status) {
-      case 'secure':
-        return <CheckCircle className="w-4 h-4" />;
-      case 'warning':
-      case 'error':
-        return <AlertTriangle className="w-4 h-4" />;
-    }
-  };
-
-  const getTooltipText = (type: string, status: SecurityStatus[keyof SecurityStatus]) => {
-    const statusText = status === 'secure' ? 'Secure' : status === 'warning' ? 'Warning' : 'Error';
-    const typeMap = {
-      camera: 'Camera Feed',
-      microphone: 'Audio Monitoring', 
-      connection: 'Connection'
-    };
-    return `${typeMap[type as keyof typeof typeMap]} ${statusText}`;
   };
 
   return (
@@ -80,29 +81,50 @@ const AssessmentHeader: React.FC<AssessmentHeaderProps> = ({ startTime }) => {
             
             <div className="flex items-center space-x-4">
               {/* Camera Status */}
-              <div className="group relative flex items-center space-x-2">
-                <Camera className={cn("w-5 h-5", getStatusColor(securityStatus.camera))} />
-                {getStatusIcon(securityStatus.camera)}
-                <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 bg-primary text-primary-foreground text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10">
-                  {getTooltipText('camera', securityStatus.camera)}
+              <div className="group relative">
+                <div className={cn(
+                  "flex items-center space-x-2 px-3 py-2 rounded-lg transition-all duration-200",
+                  systemStatus.camera 
+                    ? "bg-success-subtle text-success" 
+                    : "bg-destructive-subtle text-destructive"
+                )}>
+                  <Camera className="w-4 h-4" />
+                  <span className="text-sm font-medium">Camera</span>
+                </div>
+                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs bg-foreground text-background rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                  {systemStatus.camera ? 'Camera Feed Secure' : 'Camera Issue Detected'}
                 </div>
               </div>
 
               {/* Microphone Status */}
-              <div className="group relative flex items-center space-x-2">
-                <Mic className={cn("w-5 h-5", getStatusColor(securityStatus.microphone))} />
-                {getStatusIcon(securityStatus.microphone)}
-                <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 bg-primary text-primary-foreground text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10">
-                  {getTooltipText('microphone', securityStatus.microphone)}
+              <div className="group relative">
+                <div className={cn(
+                  "flex items-center space-x-2 px-3 py-2 rounded-lg transition-all duration-200",
+                  systemStatus.microphone 
+                    ? "bg-success-subtle text-success" 
+                    : "bg-destructive-subtle text-destructive"
+                )}>
+                  <Mic className="w-4 h-4" />
+                  <span className="text-sm font-medium">Microphone</span>
+                </div>
+                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs bg-foreground text-background rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                  {systemStatus.microphone ? 'Audio Monitoring Active' : 'Microphone Issue Detected'}
                 </div>
               </div>
 
               {/* Connection Status */}
-              <div className="group relative flex items-center space-x-2">
-                <Wifi className={cn("w-5 h-5", getStatusColor(securityStatus.connection))} />
-                {getStatusIcon(securityStatus.connection)}
-                <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 bg-primary text-primary-foreground text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10">
-                  {getTooltipText('connection', securityStatus.connection)}
+              <div className="group relative">
+                <div className={cn(
+                  "flex items-center space-x-2 px-3 py-2 rounded-lg transition-all duration-200",
+                  systemStatus.connection 
+                    ? "bg-success-subtle text-success" 
+                    : "bg-destructive-subtle text-destructive"
+                )}>
+                  <Wifi className="w-4 h-4" />
+                  <span className="text-sm font-medium">Connection</span>
+                </div>
+                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 text-xs bg-foreground text-background rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                  {systemStatus.connection ? 'Connection Stable' : 'Connection Issue Detected'}
                 </div>
               </div>
             </div>
@@ -110,10 +132,21 @@ const AssessmentHeader: React.FC<AssessmentHeaderProps> = ({ startTime }) => {
 
           {/* Timer */}
           <div className="flex items-center space-x-3">
-            <span className="text-sm font-medium text-muted-foreground">
-              Time Elapsed:
-            </span>
-            <div className="bg-accent-subtle text-accent px-3 py-1 rounded-md font-mono text-lg font-semibold min-w-[4rem] text-center">
+            <Badge 
+              variant="outline" 
+              className={cn(
+                "text-sm font-medium border-2 transition-colors duration-200",
+                isPaused 
+                  ? "border-warning text-warning bg-warning-subtle" 
+                  : "border-accent text-accent bg-accent-subtle"
+              )}
+            >
+              {isPaused ? 'PAUSED' : 'Time Elapsed'}
+            </Badge>
+            <div className={cn(
+              "text-lg font-mono font-semibold transition-colors duration-200",
+              isPaused ? "text-warning" : "text-foreground"
+            )}>
               {formatTime(elapsedTime)}
             </div>
           </div>
