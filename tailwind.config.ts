@@ -51,6 +51,12 @@ export default {
           foreground: "hsl(var(--accent-foreground))",
           subtle: "hsl(var(--accent-subtle))",
         },
+        tertiary: {
+          DEFAULT: "hsl(var(--tertiary))",
+          light: "hsl(var(--tertiary-light))",
+          foreground: "hsl(var(--tertiary-foreground))",
+          subtle: "hsl(var(--tertiary-subtle))",
+        },
         success: {
           DEFAULT: "hsl(var(--success))",
           light: "hsl(var(--success-light))",

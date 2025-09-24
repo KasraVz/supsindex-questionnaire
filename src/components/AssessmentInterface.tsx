@@ -3,6 +3,7 @@ import AssessmentHeader from './AssessmentHeader';
 import ProgressBar from './ProgressBar';
 import QuestionCard from './QuestionCard';
 import AssessmentFooter from './AssessmentFooter';
+import StatisticsPanel from './StatisticsPanel';
 import { useToast } from '@/hooks/use-toast';
 
 // Sample question data - in a real app this would come from an API
@@ -46,6 +47,7 @@ const AssessmentInterface: React.FC = () => {
   const [currentSetIndex, setCurrentSetIndex] = useState(0);
   const [isIndustryPhase, setIsIndustryPhase] = useState(false);
   const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [flaggedQuestions, setFlaggedQuestions] = useState<Set<string>>(new Set());
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { generalSets, industrySets } = generateQuestionSets();
@@ -87,6 +89,29 @@ const AssessmentInterface: React.FC = () => {
       [questionId]: answerId
     }));
   };
+
+  const handleQuestionFlag = (questionId: string) => {
+    setFlaggedQuestions(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(questionId)) {
+        newSet.delete(questionId);
+      } else {
+        newSet.add(questionId);
+      }
+      return newSet;
+    });
+  };
+
+  // Calculate statistics
+  const completedSets = Math.min(currentSetIndex, isIndustryPhase ? totalGeneralSets : totalGeneralSets);
+  const currentPhaseQuestions = isIndustryPhase ? totalIndustrySets * 4 : totalGeneralSets * 5;
+  const answeredInCurrentPhase = Object.keys(answers).filter(questionId => {
+    if (isIndustryPhase) {
+      return questionId.startsWith('industry-');
+    } else {
+      return questionId.startsWith('general-');
+    }
+  }).length;
 
   const handleNext = async () => {
     if (isLastSet) {
@@ -153,6 +178,16 @@ const AssessmentInterface: React.FC = () => {
         />
       </div>
       
+      {/* Statistics Panel */}
+      <StatisticsPanel
+        setsCompleted={completedSets}
+        totalSets={isIndustryPhase ? totalIndustrySets : totalGeneralSets}
+        questionsAnswered={answeredInCurrentPhase}
+        totalQuestions={currentPhaseQuestions}
+        questionsFlagged={flaggedQuestions.size}
+        isIndustryPhase={isIndustryPhase}
+      />
+      
       {/* Main Content Area */}
       <main className="pb-24">
         <QuestionCard
@@ -162,6 +197,8 @@ const AssessmentInterface: React.FC = () => {
           isGeneralQuestions={!isIndustryPhase}
           currentSetNumber={isIndustryPhase ? currentSetIndex - totalGeneralSets + 1 : currentSetNumber}
           totalSets={isIndustryPhase ? totalIndustrySets : totalGeneralSets}
+          flaggedQuestions={flaggedQuestions}
+          onQuestionFlag={handleQuestionFlag}
         />
       </main>
       

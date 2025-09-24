@@ -2,6 +2,8 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Flag } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface Question {
@@ -26,6 +28,8 @@ interface QuestionCardProps {
   isGeneralQuestions: boolean;
   currentSetNumber: number;
   totalSets: number;
+  flaggedQuestions: Set<string>;
+  onQuestionFlag: (questionId: string) => void;
 }
 
 const QuestionCard: React.FC<QuestionCardProps> = ({
@@ -34,7 +38,9 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
   onAnswerChange,
   isGeneralQuestions,
   currentSetNumber,
-  totalSets
+  totalSets,
+  flaggedQuestions,
+  onQuestionFlag
 }) => {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -60,9 +66,25 @@ const QuestionCard: React.FC<QuestionCardProps> = ({
                 <div className="flex-shrink-0 w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-semibold">
                   {questionIndex + 1}
                 </div>
-                <h3 className="text-base font-medium text-foreground leading-relaxed">
-                  {question.text}
-                </h3>
+                <div className="flex-1">
+                  <h3 className="text-base font-medium text-foreground leading-relaxed">
+                    {question.text}
+                  </h3>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onQuestionFlag(question.id)}
+                  className={cn(
+                    "flex-shrink-0 p-1 h-7 w-7 transition-colors duration-200",
+                    flaggedQuestions.has(question.id)
+                      ? "text-tertiary hover:text-tertiary-light"
+                      : "text-muted-foreground hover:text-tertiary"
+                  )}
+                  title="Flag as incorrect"
+                >
+                  <Flag className="w-4 h-4" />
+                </Button>
               </div>
               
               <div className="ml-9">
