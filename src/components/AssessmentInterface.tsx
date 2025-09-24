@@ -4,8 +4,6 @@ import ProgressBar from './ProgressBar';
 import QuestionCard from './QuestionCard';
 import AssessmentFooter from './AssessmentFooter';
 import StatisticsPanel from './StatisticsPanel';
-import InterruptionModal from './InterruptionModal';
-import RejectionScreen from './RejectionScreen';
 import { useToast } from '@/hooks/use-toast';
 
 // Sample question data - in a real app this would come from an API
@@ -51,13 +49,6 @@ const AssessmentInterface: React.FC = () => {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [flaggedQuestions, setFlaggedQuestions] = useState<Set<string>>(new Set());
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isPaused, setIsPaused] = useState(false);
-  const [failedSystem, setFailedSystem] = useState<'camera' | 'microphone' | 'connection' | null>(null);
-  const [interruptionCount, setInterruptionCount] = useState(0);
-  const [showRejectionScreen, setShowRejectionScreen] = useState(false);
-  const [referenceId] = useState(() => 
-    `REF-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substr(2, 4).toUpperCase()}`
-  );
 
   const { generalSets, industrySets } = generateQuestionSets();
   const totalGeneralSets = generalSets.length;
@@ -111,57 +102,6 @@ const AssessmentInterface: React.FC = () => {
     });
   };
 
-  const handleSystemFailure = (system: 'camera' | 'microphone' | 'connection') => {
-    setIsPaused(true);
-    setFailedSystem(system);
-    setInterruptionCount(prev => prev + 1);
-  };
-
-  const handleRetrySystem = async (): Promise<boolean> => {
-    // Simulate system check
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    // For demo purposes, randomly succeed or fail
-    const success = Math.random() > 0.3; // 70% success rate
-    
-    if (success) {
-      setIsPaused(false);
-      setFailedSystem(null);
-      toast({
-        title: "System Restored",
-        description: "All systems are now functioning properly. Assessment resumed.",
-        variant: "default",
-      });
-      return true;
-    } else {
-      // If second failure or retry fails, show rejection screen
-      if (interruptionCount >= 2) {
-        setShowRejectionScreen(true);
-        return false;
-      }
-      
-      toast({
-        title: "System Check Failed",
-        description: "Unable to restore system connection. Please try again.",
-        variant: "destructive",
-      });
-      return false;
-    }
-  };
-
-  const handleRestartAssessment = () => {
-    // Reset all states to initial values
-    setCurrentSetIndex(0);
-    setIsIndustryPhase(false);
-    setAnswers({});
-    setFlaggedQuestions(new Set());
-    setIsSubmitting(false);
-    setIsPaused(false);
-    setFailedSystem(null);
-    setInterruptionCount(0);
-    setShowRejectionScreen(false);
-  };
-
   // Calculate statistics
   const completedSets = Math.min(currentSetIndex, isIndustryPhase ? totalGeneralSets : totalGeneralSets);
   const currentPhaseQuestions = isIndustryPhase ? totalIndustrySets * 4 : totalGeneralSets * 5;
@@ -212,16 +152,7 @@ const AssessmentInterface: React.FC = () => {
     }
   };
 
-  if (showRejectionScreen) {
-    return (
-      <RejectionScreen
-        referenceId={referenceId}
-        onRestart={handleRestartAssessment}
-      />
-    );
-  }
-
-  if (!currentQuestionSet && !showRejectionScreen) {
+  if (!currentQuestionSet) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -234,20 +165,8 @@ const AssessmentInterface: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Interruption Modal */}
-      <InterruptionModal
-        isOpen={failedSystem !== null && !showRejectionScreen}
-        failedSystem={failedSystem || 'camera'}
-        onRetry={handleRetrySystem}
-        onClose={() => setFailedSystem(null)}
-      />
-      
       {/* Fixed Header */}
-      <AssessmentHeader 
-        startTime={startTime} 
-        isPaused={isPaused}
-        onSystemFailure={handleSystemFailure}
-      />
+      <AssessmentHeader startTime={startTime} />
       
       {/* Progress Bar */}
       <div className="pt-16">
