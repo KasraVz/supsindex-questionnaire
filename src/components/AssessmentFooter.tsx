@@ -1,21 +1,17 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, Trophy } from 'lucide-react';
+import { ChevronRight, Trophy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface AssessmentFooterProps {
-  onPrevious?: () => void;
   onNext: () => void;
-  canGoBack: boolean;
   canProceed: boolean;
   isLastSet: boolean;
   isSubmitting?: boolean;
 }
 
 const AssessmentFooter: React.FC<AssessmentFooterProps> = ({
-  onPrevious,
   onNext,
-  canGoBack,
   canProceed,
   isLastSet,
   isSubmitting = false
@@ -24,22 +20,6 @@ const AssessmentFooter: React.FC<AssessmentFooterProps> = ({
     <footer className="fixed bottom-0 left-0 right-0 bg-surface-elevated border-t border-card-border shadow-lg">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
         <div className="flex items-center justify-between">
-          {/* Previous Button */}
-          <div className="flex-1">
-            {canGoBack && onPrevious ? (
-              <Button
-                variant="outline"
-                onClick={onPrevious}
-                className="flex items-center space-x-2 text-muted-foreground border-muted-border hover:bg-secondary-hover hover:border-accent transition-all duration-200"
-              >
-                <ChevronLeft className="w-4 h-4" />
-                <span>Previous</span>
-              </Button>
-            ) : (
-              <div /> // Empty div to maintain layout
-            )}
-          </div>
-          
           {/* Progress Indicator */}
           <div className="flex-1 flex justify-center">
             <div className="text-xs text-muted-foreground bg-muted px-3 py-1 rounded-full">
@@ -48,7 +28,7 @@ const AssessmentFooter: React.FC<AssessmentFooterProps> = ({
           </div>
           
           {/* Next/Submit Button */}
-          <div className="flex-1 flex justify-end">
+          <div className="flex justify-end">
             <Button
               onClick={onNext}
               disabled={!canProceed || isSubmitting}

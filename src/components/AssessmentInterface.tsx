@@ -68,7 +68,7 @@ const AssessmentInterface: React.FC = () => {
     question => answers[question.id]
   ) || false;
 
-  const canGoBack = currentSetIndex > 0;
+  
   const isLastSet = isIndustryPhase && (currentSetIndex >= totalGeneralSets + totalIndustrySets - 1);
 
   useEffect(() => {
@@ -138,19 +138,6 @@ const AssessmentInterface: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handlePrevious = () => {
-    if (canGoBack) {
-      const newIndex = currentSetIndex - 1;
-      setCurrentSetIndex(newIndex);
-      
-      // Check if we're going back from industry to general phase
-      if (isIndustryPhase && newIndex < totalGeneralSets) {
-        setIsIndustryPhase(false);
-      }
-      
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-  };
 
   if (!currentQuestionSet) {
     return (
@@ -204,9 +191,7 @@ const AssessmentInterface: React.FC = () => {
       
       {/* Fixed Footer */}
       <AssessmentFooter
-        onPrevious={canGoBack ? handlePrevious : undefined}
         onNext={handleNext}
-        canGoBack={canGoBack}
         canProceed={currentSetAnswered}
         isLastSet={isLastSet}
         isSubmitting={isSubmitting}
