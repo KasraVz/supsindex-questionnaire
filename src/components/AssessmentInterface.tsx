@@ -1,10 +1,25 @@
 import React, { useState, useEffect } from 'react';
-import AssessmentHeader from './AssessmentHeader';
-import ProgressBar from './ProgressBar';
-import QuestionCard from './QuestionCard';
-import AssessmentFooter from './AssessmentFooter';
-import StatisticsPanel from './StatisticsPanel';
+import AssessmentHeader from '@/components/AssessmentHeader';
+import ProgressBar from '@/components/ProgressBar';
+import StatisticsPanel from '@/components/StatisticsPanel';
+import QuestionCard from '@/components/QuestionCard';
+import AssessmentFooter from '@/components/AssessmentFooter';
+import BreakModal from '@/components/BreakModal';
+import EndSessionModal from '@/components/EndSessionModal';
+import IdleWarningNotification from '@/components/IdleWarningNotification';
+import { useIdleDetection } from '@/hooks/useIdleDetection';
 import { useToast } from '@/hooks/use-toast';
+
+interface AssessmentConfig {
+  type: 'FPA' | 'GEB' | 'EEA';
+  stage: string;
+  industry?: string;
+  ecosystem?: string;
+}
+
+interface AssessmentInterfaceProps {
+  assessmentConfig: AssessmentConfig | null;
+}
 
 // Sample question data - in a real app this would come from an API
 const generateQuestionSets = () => {
@@ -41,14 +56,18 @@ const generateQuestionSets = () => {
   return { generalSets, industrySets };
 };
 
-const AssessmentInterface: React.FC = () => {
+const AssessmentInterface: React.FC<AssessmentInterfaceProps> = ({ assessmentConfig }) => {
   const { toast } = useToast();
-  const [startTime] = useState(new Date());
   const [currentSetIndex, setCurrentSetIndex] = useState(0);
-  const [isIndustryPhase, setIsIndustryPhase] = useState(false);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [flaggedQuestions, setFlaggedQuestions] = useState<Set<string>>(new Set());
+  const [isIndustryPhase, setIsIndustryPhase] = useState(false);
+  const [startTime] = useState(new Date());
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showBreakModal, setShowBreakModal] = useState(false);
+  const [showEndSessionModal, setShowEndSessionModal] = useState(false);
+  const [breakTaken, setBreakTaken] = useState(false);
+  const [showIdleWarning, setShowIdleWarning] = useState(false);
 
   const { generalSets, industrySets } = generateQuestionSets();
   const totalGeneralSets = generalSets.length;
@@ -68,8 +87,17 @@ const AssessmentInterface: React.FC = () => {
     question => answers[question.id]
   ) || false;
 
-  
   const isLastSet = isIndustryPhase && (currentSetIndex >= totalGeneralSets + totalIndustrySets - 1);
+
+  // Idle detection
+  useIdleDetection({
+    idleTime: 60000, // 1 minute
+    onIdle: () => {
+      if (!showBreakModal && !showEndSessionModal && !showIdleWarning) {
+        setShowIdleWarning(true);
+      }
+    }
+  });
 
   useEffect(() => {
     // Transition to industry phase when general questions are complete
@@ -99,6 +127,44 @@ const AssessmentInterface: React.FC = () => {
         newSet.add(questionId);
       }
       return newSet;
+    });
+  };
+
+  const handleTakeBreak = () => {
+    if (!breakTaken) {
+      setShowBreakModal(true);
+    } else {
+      toast({
+        title: "Break Already Taken",
+        description: "You can only take one break during the assessment.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleBreakComplete = () => {
+    setShowBreakModal(false);
+    setBreakTaken(true);
+    toast({
+      title: "Break Complete",
+      description: "Welcome back! You can now continue with your assessment.",
+    });
+  };
+
+  const handleEndSession = () => {
+    setShowEndSessionModal(true);
+  };
+
+  const handleConfirmEndSession = () => {
+    // Redirect to dashboard - in a real app this would be handled by router
+    window.location.href = '/dashboard';
+  };
+
+  const handleIdleStayActive = () => {
+    setShowIdleWarning(false);
+    toast({
+      title: "Activity Confirmed",
+      description: "Thank you for staying active during your assessment.",
     });
   };
 
@@ -138,7 +204,6 @@ const AssessmentInterface: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-
   if (!currentQuestionSet) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -153,7 +218,12 @@ const AssessmentInterface: React.FC = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Fixed Header */}
-      <AssessmentHeader startTime={startTime} />
+      <AssessmentHeader 
+        startTime={startTime} 
+        onTakeBreak={handleTakeBreak}
+        onEndSession={handleEndSession}
+        isBreakAvailable={!breakTaken}
+      />
       
       {/* Progress Bar */}
       <div className="pt-16">
@@ -195,6 +265,24 @@ const AssessmentInterface: React.FC = () => {
         canProceed={currentSetAnswered}
         isLastSet={isLastSet}
         isSubmitting={isSubmitting}
+      />
+
+      {/* Modals and Notifications */}
+      <BreakModal
+        isOpen={showBreakModal}
+        onBreakComplete={handleBreakComplete}
+      />
+      
+      <EndSessionModal
+        isOpen={showEndSessionModal}
+        onClose={() => setShowEndSessionModal(false)}
+        onConfirm={handleConfirmEndSession}
+      />
+      
+      <IdleWarningNotification
+        isVisible={showIdleWarning}
+        onDismiss={() => setShowIdleWarning(false)}
+        onStayActive={handleIdleStayActive}
       />
     </div>
   );

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Camera, Mic, Wifi, CheckCircle, AlertTriangle } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { CheckCircle, AlertTriangle, Camera, Mic, Wifi, Coffee, LogOut } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Button } from '@/components/ui/button';
 
 interface SecurityStatus {
   camera: 'secure' | 'warning' | 'error';
@@ -10,13 +11,21 @@ interface SecurityStatus {
 
 interface AssessmentHeaderProps {
   startTime: Date;
+  onTakeBreak: () => void;
+  onEndSession: () => void;
+  isBreakAvailable: boolean;
 }
 
-const AssessmentHeader: React.FC<AssessmentHeaderProps> = ({ startTime }) => {
+const AssessmentHeader: React.FC<AssessmentHeaderProps> = ({ 
+  startTime, 
+  onTakeBreak, 
+  onEndSession, 
+  isBreakAvailable 
+}) => {
   const [elapsedTime, setElapsedTime] = useState(0);
   const [securityStatus] = useState<SecurityStatus>({
     camera: 'secure',
-    microphone: 'secure', 
+    microphone: 'secure',
     connection: 'secure'
   });
 
@@ -60,61 +69,103 @@ const AssessmentHeader: React.FC<AssessmentHeaderProps> = ({ startTime }) => {
     const statusText = status === 'secure' ? 'Secure' : status === 'warning' ? 'Warning' : 'Error';
     const typeMap = {
       camera: 'Camera Feed',
-      microphone: 'Audio Monitoring', 
+      microphone: 'Audio Monitoring',
       connection: 'Connection'
     };
     return `${typeMap[type as keyof typeof typeMap]} ${statusText}`;
   };
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-surface-elevated border-b border-card-border shadow-sm">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+    <header className="fixed top-0 left-0 right-0 bg-surface-elevated border-b border-card-border shadow-md z-40">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+        <div className="flex items-center justify-between">
           {/* Security Status */}
-          <div className="flex items-center space-x-6">
-            <div className="flex items-center space-x-1">
-              <span className="text-sm font-medium text-muted-foreground mr-3">
-                Procurement Status:
-              </span>
-            </div>
-            
-            <div className="flex items-center space-x-4">
-              {/* Camera Status */}
-              <div className="group relative flex items-center space-x-2">
-                <Camera className={cn("w-5 h-5", getStatusColor(securityStatus.camera))} />
-                {getStatusIcon(securityStatus.camera)}
-                <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 bg-primary text-primary-foreground text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10">
-                  {getTooltipText('camera', securityStatus.camera)}
-                </div>
-              </div>
+          <div className="flex items-center space-x-4">
+            <h2 className="text-lg font-semibold text-foreground">Assessment</h2>
+            <div className="flex items-center space-x-3">
+              <Tooltip>
+                <TooltipTrigger>
+                  <div className="flex items-center space-x-1">
+                    <Camera className="w-4 h-4 text-muted-foreground" />
+                    {getStatusIcon(securityStatus.camera)}
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{getTooltipText('camera', securityStatus.camera)}</p>
+                </TooltipContent>
+              </Tooltip>
 
-              {/* Microphone Status */}
-              <div className="group relative flex items-center space-x-2">
-                <Mic className={cn("w-5 h-5", getStatusColor(securityStatus.microphone))} />
-                {getStatusIcon(securityStatus.microphone)}
-                <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 bg-primary text-primary-foreground text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10">
-                  {getTooltipText('microphone', securityStatus.microphone)}
-                </div>
-              </div>
+              <Tooltip>
+                <TooltipTrigger>
+                  <div className="flex items-center space-x-1">
+                    <Mic className="w-4 h-4 text-muted-foreground" />
+                    {getStatusIcon(securityStatus.microphone)}
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{getTooltipText('microphone', securityStatus.microphone)}</p>
+                </TooltipContent>
+              </Tooltip>
 
-              {/* Connection Status */}
-              <div className="group relative flex items-center space-x-2">
-                <Wifi className={cn("w-5 h-5", getStatusColor(securityStatus.connection))} />
-                {getStatusIcon(securityStatus.connection)}
-                <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 bg-primary text-primary-foreground text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10">
-                  {getTooltipText('connection', securityStatus.connection)}
-                </div>
-              </div>
+              <Tooltip>
+                <TooltipTrigger>
+                  <div className="flex items-center space-x-1">
+                    <Wifi className="w-4 h-4 text-muted-foreground" />
+                    {getStatusIcon(securityStatus.connection)}
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{getTooltipText('connection', securityStatus.connection)}</p>
+                </TooltipContent>
+              </Tooltip>
             </div>
           </div>
 
+          {/* Center - Actions */}
+          <div className="flex items-center space-x-2">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onTakeBreak}
+                  disabled={!isBreakAvailable}
+                  className="text-accent border-accent hover:bg-accent hover:text-accent-foreground"
+                >
+                  <Coffee className="w-4 h-4 mr-2" />
+                  Take Break
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{isBreakAvailable ? "Take a 5-minute break" : "Break not available"}</p>
+              </TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onEndSession}
+                  className="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
+                >
+                  <LogOut className="w-4 h-4 mr-2" />
+                  End Session
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>End assessment and return to dashboard</p>
+              </TooltipContent>
+            </Tooltip>
+          </div>
+
           {/* Timer */}
-          <div className="flex items-center space-x-3">
-            <span className="text-sm font-medium text-muted-foreground">
-              Time Elapsed:
-            </span>
-            <div className="bg-accent-subtle text-accent px-3 py-1 rounded-md font-mono text-lg font-semibold min-w-[4rem] text-center">
-              {formatTime(elapsedTime)}
+          <div className="flex items-center space-x-4">
+            <div className="bg-muted px-4 py-2 rounded-lg">
+              <div className="text-xs text-muted-foreground uppercase tracking-wide">Time Elapsed</div>
+              <div className="text-lg font-mono font-semibold text-foreground">
+                {formatTime(elapsedTime)}
+              </div>
             </div>
           </div>
         </div>
