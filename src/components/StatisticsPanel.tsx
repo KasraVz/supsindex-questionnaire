@@ -20,7 +20,7 @@ const StatisticsPanel: React.FC<StatisticsPanelProps> = ({
   isIndustryPhase
 }) => {
   return (
-    <div className="fixed left-4 top-24 z-10 hidden lg:block">
+    <div className="fixed left-4 top-32 z-10 hidden lg:block">
       <Card className="w-56 bg-surface-elevated shadow-lg border border-card-border animate-fade-in">
         <CardHeader className="pb-3">
           <CardTitle className="text-sm font-semibold text-foreground flex items-center space-x-2">
