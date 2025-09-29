@@ -67,6 +67,7 @@ const AssessmentInterface: React.FC<AssessmentInterfaceProps> = ({ assessmentCon
   const [showBreakModal, setShowBreakModal] = useState(false);
   const [showEndSessionModal, setShowEndSessionModal] = useState(false);
   const [breakTaken, setBreakTaken] = useState(false);
+  const [breakRequested, setBreakRequested] = useState(false);
   const [showIdleWarning, setShowIdleWarning] = useState(false);
 
   const { generalSets, industrySets } = generateQuestionSets();
@@ -131,8 +132,19 @@ const AssessmentInterface: React.FC<AssessmentInterfaceProps> = ({ assessmentCon
   };
 
   const handleTakeBreak = () => {
-    if (!breakTaken) {
-      setShowBreakModal(true);
+    if (!breakTaken && !breakRequested) {
+      setBreakRequested(true);
+      toast({
+        title: "Break Requested",
+        description: "Your break will start after you complete this question set.",
+        variant: "default"
+      });
+    } else if (breakRequested) {
+      toast({
+        title: "Break Already Requested",
+        description: "Your break will start after completing this set.",
+        variant: "default"
+      });
     } else {
       toast({
         title: "Break Already Taken",
@@ -145,10 +157,15 @@ const AssessmentInterface: React.FC<AssessmentInterfaceProps> = ({ assessmentCon
   const handleBreakComplete = () => {
     setShowBreakModal(false);
     setBreakTaken(true);
+    setBreakRequested(false);
     toast({
       title: "Break Complete",
       description: "Welcome back! You can now continue with your assessment.",
     });
+    
+    // Continue to next set after break
+    setCurrentSetIndex(prev => prev + 1);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleEndSession = () => {
@@ -197,6 +214,12 @@ const AssessmentInterface: React.FC<AssessmentInterfaceProps> = ({ assessmentCon
       return;
     }
 
+    // Check if break was requested
+    if (breakRequested) {
+      setShowBreakModal(true);
+      return;
+    }
+
     // Move to next set
     setCurrentSetIndex(prev => prev + 1);
     
@@ -222,7 +245,7 @@ const AssessmentInterface: React.FC<AssessmentInterfaceProps> = ({ assessmentCon
         startTime={startTime} 
         onTakeBreak={handleTakeBreak}
         onEndSession={handleEndSession}
-        isBreakAvailable={!breakTaken}
+        isBreakAvailable={!breakTaken && !breakRequested}
       />
       
       {/* Progress Bar */}
