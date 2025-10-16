@@ -7,6 +7,7 @@ import AssessmentFooter from '@/components/AssessmentFooter';
 import BreakModal from '@/components/BreakModal';
 import EndSessionModal from '@/components/EndSessionModal';
 import IdleWarningNotification from '@/components/IdleWarningNotification';
+import AssessmentRulesScreen from '@/components/AssessmentRulesScreen';
 import { useIdleDetection } from '@/hooks/useIdleDetection';
 import { useToast } from '@/hooks/use-toast';
 
@@ -58,6 +59,7 @@ const generateQuestionSets = () => {
 
 const AssessmentInterface: React.FC<AssessmentInterfaceProps> = ({ assessmentConfig }) => {
   const { toast } = useToast();
+  const [assessmentStarted, setAssessmentStarted] = useState(false);
   const [currentSetIndex, setCurrentSetIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [flaggedQuestions, setFlaggedQuestions] = useState<Set<string>>(new Set());
@@ -300,6 +302,16 @@ const AssessmentInterface: React.FC<AssessmentInterfaceProps> = ({ assessmentCon
     // Scroll to top for better UX
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  // Show rules screen before starting assessment
+  if (!assessmentStarted) {
+    return (
+      <AssessmentRulesScreen
+        assessmentConfig={assessmentConfig}
+        onStartAssessment={() => setAssessmentStarted(true)}
+      />
+    );
+  }
 
   if (!currentQuestionSet) {
     return (
