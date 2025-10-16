@@ -11,7 +11,7 @@ import { useIdleDetection } from '@/hooks/useIdleDetection';
 import { useToast } from '@/hooks/use-toast';
 
 interface AssessmentConfig {
-  type: 'FPA' | 'GEB' | 'EEA';
+  type: 'FPA' | 'GEB' | 'EEA' | 'BUNDLE';
   stage: string;
   industry?: string;
   ecosystem?: string;
@@ -69,6 +69,14 @@ const AssessmentInterface: React.FC<AssessmentInterfaceProps> = ({ assessmentCon
   const [breakTaken, setBreakTaken] = useState(false);
   const [breakRequested, setBreakRequested] = useState(false);
   const [showIdleWarning, setShowIdleWarning] = useState(false);
+  
+  // Bundle-specific state
+  const [currentBundleAssessment, setCurrentBundleAssessment] = useState<'FPA' | 'GEB' | 'EEA'>('FPA');
+  const [bundleBreaksUsed, setBundleBreaksUsed] = useState<Record<string, boolean>>({
+    FPA: false,
+    GEB: false,
+    EEA: false
+  });
 
   const { generalSets, industrySets } = generateQuestionSets();
   const totalGeneralSets = generalSets.length;
@@ -104,13 +112,45 @@ const AssessmentInterface: React.FC<AssessmentInterfaceProps> = ({ assessmentCon
     // Transition to industry phase when general questions are complete
     if (currentSetIndex >= totalGeneralSets && !isIndustryPhase) {
       setIsIndustryPhase(true);
+      
+      // For bundle, check if we need to transition to next assessment
+      if (assessmentConfig?.type === 'BUNDLE') {
+        handleBundleAssessmentTransition();
+      } else {
+        toast({
+          title: "Phase Complete!",
+          description: "Moving to industry-specific questions.",
+          variant: "default",
+        });
+      }
+    }
+  }, [currentSetIndex, totalGeneralSets, isIndustryPhase, toast]);
+
+  const handleBundleAssessmentTransition = () => {
+    if (assessmentConfig?.type !== 'BUNDLE') return;
+    
+    if (currentBundleAssessment === 'FPA') {
+      setCurrentBundleAssessment('GEB');
+      setCurrentSetIndex(0);
+      setIsIndustryPhase(false);
+      setBreakTaken(false);
       toast({
-        title: "Phase Complete!",
-        description: "Moving to industry-specific questions.",
+        title: "FPA Complete! 🎉",
+        description: "Moving to General Entrepreneur Behavior assessment.",
+        variant: "default",
+      });
+    } else if (currentBundleAssessment === 'GEB') {
+      setCurrentBundleAssessment('EEA');
+      setCurrentSetIndex(0);
+      setIsIndustryPhase(false);
+      setBreakTaken(false);
+      toast({
+        title: "GEB Complete! 🎉",
+        description: "Moving to Ecosystem Environment Assessment.",
         variant: "default",
       });
     }
-  }, [currentSetIndex, totalGeneralSets, isIndustryPhase, toast]);
+  };
 
   const handleAnswerChange = (questionId: string, answerId: string) => {
     setAnswers(prev => ({
@@ -132,7 +172,10 @@ const AssessmentInterface: React.FC<AssessmentInterfaceProps> = ({ assessmentCon
   };
 
   const handleTakeBreak = () => {
-    if (!breakTaken && !breakRequested) {
+    const isBundle = assessmentConfig?.type === 'BUNDLE';
+    const bundleBreakUsed = isBundle && bundleBreaksUsed[currentBundleAssessment];
+    
+    if ((!breakTaken || (isBundle && !bundleBreakUsed)) && !breakRequested) {
       setBreakRequested(true);
       toast({
         title: "Break Requested",
@@ -148,7 +191,9 @@ const AssessmentInterface: React.FC<AssessmentInterfaceProps> = ({ assessmentCon
     } else {
       toast({
         title: "Break Already Taken",
-        description: "You can only take one break during the assessment.",
+        description: isBundle 
+          ? `You've already used your break for the ${currentBundleAssessment} assessment.`
+          : "You can only take one break during the assessment.",
         variant: "destructive"
       });
     }
@@ -158,6 +203,15 @@ const AssessmentInterface: React.FC<AssessmentInterfaceProps> = ({ assessmentCon
     setShowBreakModal(false);
     setBreakTaken(true);
     setBreakRequested(false);
+    
+    // For bundle, track breaks per assessment
+    if (assessmentConfig?.type === 'BUNDLE') {
+      setBundleBreaksUsed(prev => ({
+        ...prev,
+        [currentBundleAssessment]: true
+      }));
+    }
+    
     toast({
       title: "Break Complete",
       description: "Welcome back! You can now continue with your assessment.",
@@ -197,6 +251,26 @@ const AssessmentInterface: React.FC<AssessmentInterfaceProps> = ({ assessmentCon
   }).length;
 
   const handleNext = async () => {
+    // For bundle, check if this assessment is complete and transition to next
+    if (assessmentConfig?.type === 'BUNDLE' && isLastSet) {
+      if (currentBundleAssessment === 'EEA') {
+        // All bundle assessments complete
+        setIsSubmitting(true);
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        toast({
+          title: "All Assessments Complete! 🎉",
+          description: "Your comprehensive bundle assessment has been submitted successfully.",
+          variant: "default",
+        });
+        setIsSubmitting(false);
+        return;
+      } else {
+        // Transition to next assessment in bundle
+        handleBundleAssessmentTransition();
+        return;
+      }
+    }
+    
     if (isLastSet) {
       // Handle assessment completion
       setIsSubmitting(true);
@@ -245,7 +319,11 @@ const AssessmentInterface: React.FC<AssessmentInterfaceProps> = ({ assessmentCon
         startTime={startTime} 
         onTakeBreak={handleTakeBreak}
         onEndSession={handleEndSession}
-        isBreakAvailable={!breakTaken && !breakRequested}
+        isBreakAvailable={
+          assessmentConfig?.type === 'BUNDLE' 
+            ? !bundleBreaksUsed[currentBundleAssessment] && !breakRequested
+            : !breakTaken && !breakRequested
+        }
       />
       
       {/* Progress Bar */}

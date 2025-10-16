@@ -4,7 +4,7 @@ import AssessmentInterface from '@/components/AssessmentInterface';
 import AssessmentOverview from '@/components/AssessmentOverview';
 
 interface AssessmentConfig {
-  type: 'FPA' | 'GEB' | 'EEA';
+  type: 'FPA' | 'GEB' | 'EEA' | 'BUNDLE';
   stage: string;
   industry?: string;
   ecosystem?: string;

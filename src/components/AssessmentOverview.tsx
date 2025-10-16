@@ -10,14 +10,14 @@ interface AssessmentOverviewProps {
 }
 
 interface AssessmentConfig {
-  type: 'FPA' | 'GEB' | 'EEA';
+  type: 'FPA' | 'GEB' | 'EEA' | 'BUNDLE';
   stage: string;
   industry?: string;
   ecosystem?: string;
 }
 
 const AssessmentOverview: React.FC<AssessmentOverviewProps> = ({ onBeginAssessment }) => {
-  const [selectedType, setSelectedType] = useState<'FPA' | 'GEB' | 'EEA' | ''>('');
+  const [selectedType, setSelectedType] = useState<'FPA' | 'GEB' | 'EEA' | 'BUNDLE' | ''>('');
   const [stage, setStage] = useState('');
   const [industry, setIndustry] = useState('');
   const [ecosystem, setEcosystem] = useState('');
@@ -29,7 +29,8 @@ const AssessmentOverview: React.FC<AssessmentOverviewProps> = ({ onBeginAssessme
       duration: '45-60 minutes',
       questions: '80-120 questions',
       fields: ['Stage', 'Industry'],
-      color: 'bg-accent'
+      color: 'bg-accent',
+      badge: 'FPA'
     },
     GEB: {
       title: 'General Entrepreneur Behavior',
@@ -37,7 +38,8 @@ const AssessmentOverview: React.FC<AssessmentOverviewProps> = ({ onBeginAssessme
       duration: '30-45 minutes',
       questions: '60-80 questions',
       fields: ['Stage'],
-      color: 'bg-primary'
+      color: 'bg-primary',
+      badge: 'GEB'
     },
     EEA: {
       title: 'Ecosystem Environment Assessment',
@@ -45,7 +47,17 @@ const AssessmentOverview: React.FC<AssessmentOverviewProps> = ({ onBeginAssessme
       duration: '50-70 minutes',
       questions: '90-130 questions',
       fields: ['Stage', 'Industry', 'Ecosystem'],
-      color: 'bg-tertiary'
+      color: 'bg-tertiary',
+      badge: 'EEA'
+    },
+    BUNDLE: {
+      title: 'Complete Assessment Bundle',
+      description: 'Take all three assessments in sequence for comprehensive evaluation across all dimensions.',
+      duration: '2-3 hours',
+      questions: '230-330 questions',
+      fields: ['Stage', 'Industry', 'Ecosystem'],
+      color: 'bg-gradient-to-r from-accent via-primary to-tertiary',
+      badge: 'ALL 3'
     }
   };
 
@@ -65,15 +77,15 @@ const AssessmentOverview: React.FC<AssessmentOverviewProps> = ({ onBeginAssessme
 
   const canProceed = selectedType && stage && 
     (selectedType === 'GEB' || industry) && 
-    (selectedType !== 'EEA' || ecosystem);
+    (selectedType !== 'EEA' && selectedType !== 'BUNDLE' || ecosystem);
 
   const handleBegin = () => {
     if (canProceed) {
       onBeginAssessment({
-        type: selectedType as 'FPA' | 'GEB' | 'EEA',
+        type: selectedType as 'FPA' | 'GEB' | 'EEA' | 'BUNDLE',
         stage,
         industry: selectedType !== 'GEB' ? industry : undefined,
-        ecosystem: selectedType === 'EEA' ? ecosystem : undefined
+        ecosystem: (selectedType === 'EEA' || selectedType === 'BUNDLE') ? ecosystem : undefined
       });
     }
   };
@@ -91,7 +103,7 @@ const AssessmentOverview: React.FC<AssessmentOverviewProps> = ({ onBeginAssessme
         </div>
 
         {/* Assessment Type Selection */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {Object.entries(assessmentTypes).map(([key, type]) => (
             <Card
               key={key}
@@ -100,12 +112,12 @@ const AssessmentOverview: React.FC<AssessmentOverviewProps> = ({ onBeginAssessme
                   ? 'ring-2 ring-accent shadow-lg' 
                   : 'hover:shadow-md'
               }`}
-              onClick={() => setSelectedType(key as 'FPA' | 'GEB' | 'EEA')}
+              onClick={() => setSelectedType(key as 'FPA' | 'GEB' | 'EEA' | 'BUNDLE')}
             >
               <CardHeader className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Badge className={`${type.color} text-white`}>
-                    {key}
+                    {type.badge}
                   </Badge>
                   {selectedType === key && (
                     <div className="w-4 h-4 bg-accent rounded-full flex items-center justify-center">
@@ -191,8 +203,8 @@ const AssessmentOverview: React.FC<AssessmentOverviewProps> = ({ onBeginAssessme
                   </div>
                 )}
 
-                {/* Ecosystem Selection (for EEA only) */}
-                {selectedType === 'EEA' && (
+                {/* Ecosystem Selection (for EEA and BUNDLE) */}
+                {(selectedType === 'EEA' || selectedType === 'BUNDLE') && (
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-foreground flex items-center gap-2">
                       <MapPin className="w-4 h-4" />
@@ -216,11 +228,24 @@ const AssessmentOverview: React.FC<AssessmentOverviewProps> = ({ onBeginAssessme
               <div className="bg-accent-subtle p-4 rounded-lg space-y-2">
                 <h4 className="font-medium text-foreground">Important Information:</h4>
                 <ul className="text-sm text-muted-foreground space-y-1">
-                  <li>• Ensure stable internet connection throughout the assessment</li>
-                  <li>• You can take one 5-minute break during the assessment</li>
-                  <li>• Camera and microphone monitoring is required for security</li>
-                  <li>• Assessment cannot be paused or resumed once started</li>
-                  <li>• All questions must be answered to complete the assessment</li>
+                  {selectedType === 'BUNDLE' ? (
+                    <>
+                      <li>• You will complete all three assessments in sequence (FPA → GEB → EEA)</li>
+                      <li>• Total estimated time: 2-3 hours for comprehensive evaluation</li>
+                      <li>• You can take one 5-minute break during each assessment (3 breaks total)</li>
+                      <li>• Ensure stable internet connection throughout all assessments</li>
+                      <li>• Camera and microphone monitoring is required for security</li>
+                      <li>• All questions must be answered to complete the bundle</li>
+                    </>
+                  ) : (
+                    <>
+                      <li>• Ensure stable internet connection throughout the assessment</li>
+                      <li>• You can take one 5-minute break during the assessment</li>
+                      <li>• Camera and microphone monitoring is required for security</li>
+                      <li>• Assessment cannot be paused or resumed once started</li>
+                      <li>• All questions must be answered to complete the assessment</li>
+                    </>
+                  )}
                 </ul>
               </div>
 
